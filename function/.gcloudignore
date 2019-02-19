@@ -13,4 +13,8 @@
 .git
 .gitignore
 
+.DS_Store
+.eslintrc.json
+.nyc_output
 node_modules
+test

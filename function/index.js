@@ -1,30 +1,50 @@
 'use strict';
 
-const Firestore = require('@google-cloud/firestore');
+const {respondWithError} = require('./errors.js');
+const app = require('./routes/index.js');
 
-const lomax = async (req, res) => {
+// const Firestore = require('@google-cloud/firestore');
 
-    // TODO: routing for the two types of HTTP requests: 1) create archive; 2) archive status
-    // TODO: (??) routing for pubsub trigger for syncing jobs
+// TODO: read config
 
-    // create-archive path:
-    // TODO: validate non-empty Authorization header exists in request
-    // TODO: validate workspace, source bucket, destination bucket input params
-    // TODO: call to Sam to authn/authz user, via Authorization token
-    // TODO: read whitelist from bucket and validate user is whitelisted
-    // TODO: query Firestore for pre-existing jobs on this workspace
-    //     TODO: if any jobs exist, query to see if they are still active
-    //     TODO: update Firestore if any jobs have finished
-    // TODO: using Rawls bucket SA, add STS SA to source and destination buckets
-    // TODO: create STS job
-    // TODO: insert created STS job to firestore
+// define live application
+// const config = {
+//   authorizer: '', // TODO: live Sam-based authorizer
+//   events: '', // TODO: live pubsub-based event queuer
+//   database: '', // TODO: live firestore-based database connection
+//   whitelist: '', // TODO: live GCS-based whitelist reader
+//   sts: '', // TODO: live STS-based archiver
+// };
 
-    const firestore = new Firestore();
-    let collectionRef = firestore.collection('archivejobs');
+// const lomax = async (req, res, config) => {
+//   // TODO: (??) routing for pubsub trigger for syncing jobs
 
-    let docs = await collectionRef.listDocuments();
-    res.status(418).json(docs);
+//   // TODO: CORS support
 
+//   // TODO: validate workspace, source bucket, destination bucket input params
+//   // TODO: call to Sam to authn/authz user, via Authorization token
+//   // TODO: read whitelist from bucket and validate user is whitelisted
+//   // TODO: query Firestore for pre-existing jobs on this workspace
+//   //     TODO: if any jobs exist, query to see if they are still active
+//   //     TODO: update Firestore if any jobs have finished
+//   // TODO: using Rawls bucket SA, add STS SA to source and dest buckets
+//   // TODO: create STS job
+//   // TODO: insert created STS job to firestore
+
+//   const firestore = new Firestore();
+//   const collectionRef = firestore.collection('archivejobs');
+
+//   const docs = await collectionRef.listDocuments();
+//   res.status(418).json(docs);
+// };
+
+
+const httpApi = (req, res) => {
+  try {
+    app(req, res);
+  } catch (err) {
+    respondWithError(res, err);
+  }
 };
 
-module.exports = {lomax};
+module.exports = {httpApi};
