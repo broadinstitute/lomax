@@ -6,6 +6,9 @@ taking advantage of cheaper storage classes for archives.
 This service is named after the legendary music archiver
 [Alan Lomax](https://en.wikipedia.org/wiki/Alan_Lomax).
 
+[![CircleCI](https://circleci.com/gh/broadinstitute/lomax.svg?style=svg)](https://circleci.com/gh/broadinstitute/lomax)
+[![codecov](https://codecov.io/gh/broadinstitute/lomax/branch/develop/graph/badge.svg)](https://codecov.io/gh/broadinstitute/lomax)
+
 # For Developers
 
 ## Setup
