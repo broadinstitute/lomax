@@ -11,7 +11,7 @@ This service is named after the legendary music archiver
 
 # For Developers
 
-## Setup
+## Setup for Node and npm
 This codebase requires *[npm](https://www.npmjs.com/get-npm)* and *[Node.js](https://nodejs.org/en/download/releases/)*.
 Specifically, it wants Node.js version 8.15.0, or whatever minor/patch version
 Google documents at https://cloud.google.com/functions/docs/concepts/nodejs-8-runtime.
@@ -38,6 +38,11 @@ cd function
 npm install
 npm test
 ```
+
+## git-secrets
+* If you have not done so already run `brew install git-secrets`
+* To ensure git secrets is run please copy or link the *hooks* directory to .git/hooks/ locally.
+* For more information (as a Broadie) see: https://broadinstitute.atlassian.net/wiki/spaces/GAWB/pages/136445956/Git+Secrets+SHHHHH
 
 ## Linting
 1. `cd function` - make sure you're in the right directory. The root of this repostory is NOT the right directory!
