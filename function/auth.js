@@ -10,6 +10,8 @@ const requireAuthorizationHeader = (req) => {
     } else {
       return authHeader;
     }
+  } else {
+    return undefined;
   }
 };
 
@@ -36,4 +38,4 @@ const configuredAuth = (options = {}) => {
   }; ;
 };
 
-module.exports = configuredAuth;
+module.exports = {requireAuthorizationHeader, configuredAuth};

@@ -18,11 +18,11 @@ class HttpError extends Error {
   }
 }
 
-const throwHttpError = function(statusCode, message) {
+const throwHttpError = (statusCode, message) => {
   throw new HttpError(statusCode, message);
 };
 
-const respondWithError = function(res, error) {
+const respondWithError = (res, error) => {
   const code = error.statusCode || 500;
 
   // workaround for JavaScript's poor JSON.stringify handling of Error objects
@@ -34,12 +34,6 @@ const respondWithError = function(res, error) {
     output.statusCode = error.statusCode;
   }
 
-  // suppress error logging for unit tests
-  // TODO: we should only log true runtime errors as Errors,
-  // and log bad user inputs etc. as warnings.
-  if (process.env.NODE_ENV !== 'test') {
-    console.error(error);
-  }
   // res.status(code).json(error);
   res.status(code).json(output);
 };

@@ -6,7 +6,7 @@ const statusRoutes = require('./status').router;
 const versionRoutes = require('./version').router;
 const archiveCreateRoutes = require('./archiveCreate');
 const archiveReadRoutes = require('./archiveRead');
-const auth = require('../auth');
+const auth = require('../auth').configuredAuth;
 const {errorHandler, throwHttpError} = require('../errors');
 
 const app = express();
