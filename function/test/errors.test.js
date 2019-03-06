@@ -4,7 +4,8 @@ const chai = require('chai');
 const expect = chai.expect;
 const {spy} = require('sinon');
 const {mockRequest, mockResponse} = require('./mockRequestResponse');
-const {throwHttpError, respondWithError, HttpError, errorHandler} = require('../errors');
+const {throwHttpError, asyncRoute,
+  respondWithError, HttpError, errorHandler} = require('../errors');
 
 describe('HttpError class', () => {
   it('extends Error', () => {
@@ -101,5 +102,23 @@ describe('errorHandler', () => {
     expect(res.json.called).to.be.false;
     expect(next.calledOnce).to.be.true;
     expect(next.getCall(0).args[0]).to.deep.equal(err);
+  });
+
+  describe('asyncRoute wrapper', () => {
+    it('should catch rejections', async () => {
+      const req = mockRequest();
+      const res = mockResponse(true);
+      const next = spy();
+      const rejectingRoute = (req, res, next) => {
+        return Promise.reject(new Error('intentional rejection to test asyncRoute'));
+      };
+      const wrappedRoute = asyncRoute(rejectingRoute);
+      expect(next.called).to.be.false;
+      // run the wrapped route, and check that our next() function received an error
+      await wrappedRoute(req, res, next);
+      expect(next.calledOnce).to.be.true;
+      const actualErr = next.getCall(0).args[0];
+      expect(actualErr.message).to.equal('intentional rejection to test asyncRoute');
+    });
   });
 });

@@ -1,0 +1,5 @@
+{
+  "samUrl": "https://sam.dsde-dev.broadinstitute.org/",
+  "rawlsUrl": "https://rawls.dsde-dev.broadinstitute.org/",
+  "whitelistUrl": "gs://davidan-sts-test-whitelist-1/whitelist.json"
+}

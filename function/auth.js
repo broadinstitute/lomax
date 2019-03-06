@@ -1,6 +1,7 @@
 'use strict';
 
 const {throwHttpError} = require('./errors');
+const sam = require('./dataaccess/sam');
 
 const requireAuthorizationHeader = (req) => {
   if (req.method !== 'OPTIONS') { // support CORS
@@ -15,27 +16,28 @@ const requireAuthorizationHeader = (req) => {
   }
 };
 
-const authorize = (options) => {
-  const opts = options || {};
-  if (!!opts.testMode) {
+const authorize = async (appConfig = {}, authToken) => {
+  if (!!appConfig.testMode) {
     throwHttpError(501, 'Test mode not implemented yet.');
   }
+
+  const email = await sam.checkUserEnabled(appConfig, authToken);
+
+  // TODO: query whitelist for membership
+
+  return email;
 };
 
 const configuredAuth = (options = {}) => {
-  return (req, res, next) => {
-    return Promise.resolve().then(() => {
-      // require an Authorization header in req
-      requireAuthorizationHeader(req);
-
-      authorize(options);
-      // TODO: query Sam for permissions on workspace
-      // TODO: read whitelist
-      // TODO: ensure user is in whitelist
-
+  return async (req, res, next) => {
+    try {
+      const authToken = requireAuthorizationHeader(req);
+      await authorize(options, authToken);
       next();
-    }).catch(next); // propogate errors up the Express chain.
-  }; ;
+    } catch (err) {
+      next(err);
+    }
+  };
 };
 
 module.exports = {requireAuthorizationHeader, configuredAuth};

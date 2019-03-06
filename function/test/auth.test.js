@@ -5,6 +5,8 @@ const chaiAsPromised = require('chai-as-promised');
 chai.use(chaiAsPromised);
 const expect = chai.expect;
 const {spy} = require('sinon');
+const http = require('http');
+const mockserver = require('mockserver');
 
 const {mockRequest, mockResponse} = require('./mockRequestResponse');
 const {requireAuthorizationHeader, configuredAuth} = require('../auth');
@@ -33,23 +35,24 @@ describe('requireAuthorizationHeader', () => {
   });
 });
 
-describe('Authentication middleware', function() {
-  it('should throw an error when running in test mode', () => {
-    const req = mockRequest({Authorization: 'unittest'});
-    const res = mockResponse();
+describe('Authentication middleware', () => {
+  let mockSam;
 
-    const authMiddleware = configuredAuth({testMode: true});
-
-    return expect(authMiddleware(req, res)).to.be
-        .rejectedWith(HttpError, 'Test mode not implemented yet.')
-        .and.eventually.have.property('statusCode', 501);
+  before('spin up mockserver', () => {
+    mockserver.headers = ['Authorization'];
+    mockSam = http.createServer(mockserver('./test/dataaccess/mocks/sam')).listen(12321);
   });
-  it('should call the next Express handler when running in production mode', (done) => {
+
+  after('shut down mockserver', () => {
+    mockSam.close();
+  });
+
+  it('should throw an error when running in test mode', (done) => {
     const req = mockRequest({Authorization: 'unittest'});
     const res = mockResponse();
     const next = spy();
 
-    const authMiddleware = configuredAuth({testMode: false});
+    const authMiddleware = configuredAuth({testMode: true});
 
     expect(next.called).to.be.false;
     // Express calls "next" as a side effect, so we have to chain our test expectations
@@ -57,6 +60,38 @@ describe('Authentication middleware', function() {
     authMiddleware(req, res, next).then(
         (result) => {
           expect(next.calledOnce).to.be.true;
+          const actual = next.getCall(0).args[0];
+          expect(actual).to.be.an('Error');
+          expect(actual).to.have.property('message', 'Test mode not implemented yet.');
+          expect(actual).to.have.property('statusCode', 501);
+          done();
+        },
+        (err) => {
+          done(err);
+        }
+    ).catch((err) => {
+      done(err);
+    });
+  });
+  it('should call the next Express handler when running in production mode', (done) => {
+    const req = mockRequest({Authorization: 'valid'});
+    const res = mockResponse();
+    const next = spy();
+
+    const appConfig = {
+      samUrl: 'http://localhost:12321',
+    };
+
+    const authMiddleware = configuredAuth(appConfig);
+
+    expect(next.called).to.be.false;
+    // Express calls "next" as a side effect, so we have to chain our test expectations
+    // after the middleware call.
+    authMiddleware(req, res, next).then(
+        (result) => {
+          expect(next.calledOnce).to.be.true;
+          // the chain should succeed, which means Express will call next() without args
+          expect(next.getCall(0).args.length).to.equal(0);
           done();
         },
         (err) => {

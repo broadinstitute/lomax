@@ -33,7 +33,7 @@ const validateInputs = (req) => {
   });
 };
 
-router.all('/', allowedMethods(['POST']), (req, res, next) => {
+router.all('/', allowedMethods(['POST']), (req, res) => {
   // validate body payload and Content-Type: application/json
   validateInputs(req);
 

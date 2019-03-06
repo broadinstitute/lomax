@@ -1,0 +1,9 @@
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+Response-Delay: 2500
+
+{
+  "userSubjectId": "111122223333444455556",
+  "userEmail": "slow@firecloud.org",
+  "enabled": true
+}

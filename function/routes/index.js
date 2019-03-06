@@ -4,30 +4,29 @@ const express = require('express');
 const cors = require('cors');
 const statusRoutes = require('./status').router;
 const versionRoutes = require('./version').router;
-const archiveCreateRoutes = require('./archiveCreate');
+const archiveCreateRoutes = require('./archiveCreate').router;
 const archiveReadRoutes = require('./archiveRead');
 const auth = require('../auth').configuredAuth;
-const {errorHandler, throwHttpError} = require('../errors');
+const {errorHandler, throwHttpError, asyncRoute} = require('../errors');
+const appConfig = require('../config.js').config;
 
 const app = express();
 
 app.use(cors());
 // app.options('*', cors()) // to brute-force enable preflight requests
 
-app.use('/status', statusRoutes);
-app.use('/version', versionRoutes);
+app.use('/status', asyncRoute(statusRoutes));
+app.use('/version', asyncRoute(versionRoutes));
 
 // auth
-// passing testMode: false here is not necessary, since it is default. I'm doing it
-// simply to prove that I can pass options into this Express middleware function.
-// eventually I will use these options to pass a live Sam connection (prod) vs.
-// a mocked Sam (tests).
-app.use('/api', auth({testMode: false}));
+app.use('/api', asyncRoute(auth(appConfig)));
 
-app.use('/api/archive', [archiveCreateRoutes, archiveReadRoutes]);
-app.use('/api/v1/archive', [archiveCreateRoutes, archiveReadRoutes]);
+const archiveRoutes = [asyncRoute(archiveCreateRoutes), asyncRoute(archiveReadRoutes)];
 
-// TODO: return 404
+app.use('/api/archive', archiveRoutes);
+app.use('/api/v1/archive', archiveRoutes);
+
+// TODO: return something minimal at / instead of 404
 app.all('*', (req, res) => {
   throwHttpError(404, `URL ${req.originalUrl} not found.`);
 });
