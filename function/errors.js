@@ -53,7 +53,7 @@ const errorHandler = (err, req, res, next) => {
   //   * not log any http 4xx errors (bad user input);
   //   * log any errors that have no status code
   const code = (err.statusCode || -1);
-  if ( code >= 500 || code < 100 ) {
+  if ( process.env.NODE_ENV !== 'test' && code >= 500 || code < 100 ) {
     console.error(err);
   }
   if (res.headersSent) {

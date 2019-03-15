@@ -41,7 +41,7 @@ describe('Sam data access', () => {
     // call Sam with a modified timeout, shorter than the default
     // to avoid test slowness
     const timeoutSam = _.merge({}, appConfig, {
-      samTimeout: 1000,
+      timeout: 1000,
     });
     return expect(sam.checkUserEnabled(timeoutSam, 'slow'))
         .to.be.rejectedWith(HttpError, 'Connection to http://localhost:12321/register/user/v2/self/info timed out.')
@@ -52,12 +52,6 @@ describe('Sam data access', () => {
     return expect(sam.checkUserEnabled(appConfig, 'invalid'))
         .to.be.rejectedWith(HttpError)
         .and.eventually.have.property('statusCode', 401);
-  });
-
-  it('should throw for a valid token and disabled user', () => {
-    return expect(sam.checkUserEnabled(appConfig, 'disabled'))
-        .to.be.rejectedWith(HttpError, 'User is disabled.')
-        .and.eventually.have.property('statusCode', 403);
   });
 
   it('should return email address for a valid token and enabled user', async () => {
