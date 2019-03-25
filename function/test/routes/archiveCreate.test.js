@@ -2,9 +2,12 @@
 
 const expect = require('chai').expect;
 const _ = require('lodash');
+const http = require('http');
+const mockserver = require('mockserver');
 const {mockRequest} = require('../mockRequestResponse');
 const {HttpError} = require('../../errors');
-const {nonEmptyString, validateInputs} = require('../../routes/archiveCreate');
+const {nonEmptyString, validateInputs, validateWorkspaces} =
+    require('../../routes/archiveCreate');
 
 describe('Archive-create non-empty string test', () => {
   // FALSES
@@ -43,10 +46,14 @@ describe('Archive-create non-empty string test', () => {
 
 describe('Archive-create content-type validator', () => {
   const legalBody = {
-    namespace: 'myNamespace',
-    name: 'myName',
-    source: 'mySource',
-    destination: 'myDestination',
+    source: {
+      namespace: 'mySourceNamespace',
+      name: 'mySourceName',
+    },
+    destination: {
+      namespace: 'myDestinationNamespace',
+      name: 'myDestinationName',
+    },
   };
   it('should error if no content-type header', () => {
     const req = mockRequest({}, legalBody);
@@ -71,10 +78,14 @@ describe('Archive-create request body validator', () => {
     'content-type': 'application/json',
   };
   const legalBody = {
-    namespace: 'myNamespace',
-    name: 'myName',
-    source: 'mySource',
-    destination: 'myDestination',
+    source: {
+      namespace: 'mySourceNamespace',
+      name: 'mySourceName',
+    },
+    destination: {
+      namespace: 'myDestinationNamespace',
+      name: 'myDestinationName',
+    },
   };
   it(`should error if body is not a JSON object`, () => {
     const req = mockRequest(legalHeaders, 'this is a string!');
@@ -82,26 +93,108 @@ describe('Archive-create request body validator', () => {
         .to.throw(HttpError, 'Request must contain a valid JSON body.')
         .and.have.property('statusCode', 400);
   });
-  ['namespace', 'name', 'source', 'destination'].forEach((key) => {
+  ['source', 'destination'].forEach((key) => {
     it(`should error if no ${key} in body`, () => {
       const req = mockRequest(legalHeaders, _.omit(legalBody, key));
       expect(() => validateInputs(req))
-          .to.throw(HttpError, `Request must contain a non-empty value for [${key}].`)
+          .to.throw(HttpError, `Request must contain a value for [${key}].`)
           .and.have.property('statusCode', 400);
     });
   });
-  ['namespace', 'name', 'source', 'destination'].forEach((key) => {
-    it(`should error if ${key} in body is an empty string`, () => {
-      const override = {};
-      override[key] = ' ';
-      const req = mockRequest(legalHeaders, _.merge({}, legalBody, override));
-      expect(() => validateInputs(req))
-          .to.throw(HttpError, `Request must contain a non-empty value for [${key}].`)
-          .and.have.property('statusCode', 400);
+  ['source', 'destination'].forEach((ws) => {
+    ['namespace', 'name'].forEach((key) => {
+      it(`should error if no ${ws}.${key} in body`, () => {
+        const req = mockRequest(legalHeaders, _.omit(legalBody, `${ws}.${key}`));
+        expect(() => validateInputs(req))
+            .to.throw(HttpError, `Request must contain a non-empty value for [${ws}.${key}].`)
+            .and.have.property('statusCode', 400);
+      });
+    });
+  });
+  ['source', 'destination'].forEach((ws) => {
+    ['namespace', 'name'].forEach((key) => {
+      it(`should error if ${ws}.${key} in body is an empty string`, () => {
+        const override = {};
+        override[ws] = {};
+        override[ws][key] = ' ';
+        const req = mockRequest(legalHeaders, _.merge({}, legalBody, override));
+        expect(() => validateInputs(req))
+            .to.throw(HttpError, `Request must contain a non-empty value for [${ws}.${key}].`)
+            .and.have.property('statusCode', 400);
+      });
     });
   });
   it('should pass with all fields supplied', () => {
     const req = mockRequest(legalHeaders, legalBody);
     expect(() => validateInputs(req)).to.not.throw();
+  });
+});
+
+describe('validateWorkspaces', () => {
+  const appConfig = {
+    rawlsUrl: 'http://localhost:12321',
+  };
+
+  let mockrawls;
+
+  before('spin up mockserver', () => {
+    mockserver.headers = ['Authorization'];
+    mockrawls = http.createServer(mockserver('./test/dataaccess/mocks/rawls')).listen(12321);
+  });
+
+  after('shut down mockserver', () => {
+    mockrawls.close();
+  });
+
+  it('should return source and destination buckets if both succeed', async () => {
+    const userArgs = {
+      source: {
+        namespace: 'namespace',
+        name: 'name',
+      },
+      destination: {
+        namespace: 'namespace',
+        name: 'name2',
+      },
+    };
+    // expected values are defined in the mockserver responses
+    const expected = {
+      sourceBucket: 'fc-11111111-2222-3333-4444-555555555555',
+      destinationBucket: 'fc-55555555-6666-7777-8888-999999999999',
+    };
+    const actual = await validateWorkspaces(appConfig, userArgs, 'valid');
+    expect(actual).to.deep.equal(expected);
+  });
+
+  it('should throw if source workspace fails', async () => {
+    const userArgs = {
+      source: {
+        namespace: 'reader',
+        name: 'name',
+      },
+      destination: {
+        namespace: 'namespace',
+        name: 'name2',
+      },
+    };
+    return expect(validateWorkspaces(appConfig, userArgs, 'valid'))
+        .to.be.rejectedWith(HttpError, 'You must be an owner of workspace reader/name.')
+        .and.eventually.have.property('statusCode', 403);
+  });
+
+  it('should throw if destination workspace fails', async () => {
+    const userArgs = {
+      source: {
+        namespace: 'namespace',
+        name: 'name',
+      },
+      destination: {
+        namespace: 'namespace',
+        name: 'workspace-does-not-exist',
+      },
+    };
+    return expect(validateWorkspaces(appConfig, userArgs, 'valid'))
+        .to.be.rejectedWith(HttpError, 'namespace/workspace-does-not-exist does not exist')
+        .and.eventually.have.property('statusCode', 404);
   });
 });

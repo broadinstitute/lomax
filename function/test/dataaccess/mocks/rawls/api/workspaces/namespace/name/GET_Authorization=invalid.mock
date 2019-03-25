@@ -1,0 +1,9 @@
+HTTP/1.1 401 OK
+Content-Type: text/html; charset=iso-8859-1
+
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
+<html><head>
+<title>401 Unauthorized</title>
+</head><body>
+Mock HTML page returned, representing proxy rejection.
+</body></html>

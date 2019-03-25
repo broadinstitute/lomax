@@ -1,0 +1,10 @@
+HTTP/1.1 404 Not Found
+Content-Type: application/json; charset=utf-8
+
+{
+  "causes": [],
+  "message": "namespace/workspace-does-not-exist does not exist",
+  "source": "rawls",
+  "stackTrace": [],
+  "statusCode": 404
+}
