@@ -2,6 +2,7 @@
 
 const {throwHttpError} = require('./errors');
 const sam = require('./dataaccess/sam');
+const whitelist = require('./dataaccess/whitelist');
 
 const requireAuthorizationHeader = (req) => {
   if (req.method !== 'OPTIONS') { // support CORS
@@ -17,13 +18,18 @@ const requireAuthorizationHeader = (req) => {
 };
 
 const authorize = async (appConfig = {}, authToken) => {
-  if (!!appConfig.testMode) {
-    throwHttpError(501, 'Test mode not implemented yet.');
-  }
-
   const email = await sam.checkUserEnabled(appConfig, authToken);
 
-  // TODO: query whitelist for membership
+  // query whitelist for membership
+  const allowedUsers = await whitelist.readWhitelist(appConfig);
+  if (!allowedUsers.includes(email)) {
+    if (process.env.NODE_ENV !== 'test') {
+      console.error(`Rejecting request from unwhitelisted user ${email}.`);
+    }
+    // TODO: get verbiage/contact info from PO
+    throwHttpError(403,
+        'Access to this service is restricted. Contact [XXX] for more information.');
+  }
 
   return email;
 };

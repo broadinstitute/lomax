@@ -47,12 +47,17 @@ describe('Authentication middleware', () => {
     mockSam.close();
   });
 
-  it('should throw an error when running in test mode', (done) => {
-    const req = mockRequest({Authorization: 'unittest'});
+  it('should throw if whitelist bucket is not configured', (done) => {
+    const req = mockRequest({Authorization: 'valid'});
     const res = mockResponse();
     const next = spy();
 
-    const authMiddleware = configuredAuth({testMode: true});
+    const appConfig = {
+      samUrl: 'http://localhost:12321',
+      whitelistFile: 'bucket-is-missing-from-this-config.json',
+    };
+
+    const authMiddleware = configuredAuth(appConfig);
 
     expect(next.called).to.be.false;
     // Express calls "next" as a side effect, so we have to chain our test expectations
@@ -62,8 +67,9 @@ describe('Authentication middleware', () => {
           expect(next.calledOnce).to.be.true;
           const actual = next.getCall(0).args[0];
           expect(actual).to.be.an('Error');
-          expect(actual).to.have.property('message', 'Test mode not implemented yet.');
-          expect(actual).to.have.property('statusCode', 501);
+          expect(actual).to.have.property('statusCode', 500);
+          expect(actual).to.have.property('message',
+              'Whitelist bucket must be defined in app config.');
           done();
         },
         (err) => {
@@ -73,13 +79,116 @@ describe('Authentication middleware', () => {
       done(err);
     });
   });
-  it('should call the next Express handler when running in production mode', (done) => {
+
+  it('should throw if whitelist file is not configured', (done) => {
     const req = mockRequest({Authorization: 'valid'});
     const res = mockResponse();
     const next = spy();
 
     const appConfig = {
       samUrl: 'http://localhost:12321',
+      whitelistBucket: 'file-is-missing-from-this-config',
+    };
+
+    const authMiddleware = configuredAuth(appConfig);
+
+    expect(next.called).to.be.false;
+    // Express calls "next" as a side effect, so we have to chain our test expectations
+    // after the middleware call.
+    authMiddleware(req, res, next).then(
+        (result) => {
+          expect(next.calledOnce).to.be.true;
+          const actual = next.getCall(0).args[0];
+          expect(actual).to.be.an('Error');
+          expect(actual).to.have.property('statusCode', 500);
+          expect(actual).to.have.property('message',
+              'Whitelist file must be defined in app config.');
+          done();
+        },
+        (err) => {
+          done(err);
+        }
+    ).catch((err) => {
+      done(err);
+    });
+  });
+
+  it('should throw if reading whitelist results in error', (done) => {
+    const req = mockRequest({Authorization: 'valid'});
+    const res = mockResponse();
+    const next = spy();
+
+    const appConfig = {
+      samUrl: 'http://localhost:12321',
+      whitelistBucket: 'irrelevant',
+      whitelistFile: 'doesnt matter',
+      mockGCSError: 'Intentional error for unit testing',
+    };
+
+    const authMiddleware = configuredAuth(appConfig);
+
+    expect(next.called).to.be.false;
+    // Express calls "next" as a side effect, so we have to chain our test expectations
+    // after the middleware call.
+    authMiddleware(req, res, next).then(
+        (result) => {
+          expect(next.calledOnce).to.be.true;
+          const actual = next.getCall(0).args[0];
+          expect(actual).to.be.an('Error');
+          expect(actual).to.have.property('statusCode', 500);
+          expect(actual).to.have.property('message',
+              'Error: Intentional error for unit testing');
+          done();
+        },
+        (err) => {
+          done(err);
+        }
+    ).catch((err) => {
+      done(err);
+    });
+  });
+
+  it('should throw if current user is not in whitelist', (done) => {
+    const req = mockRequest({Authorization: 'valid'});
+    const res = mockResponse();
+    const next = spy();
+
+    const appConfig = {
+      samUrl: 'http://localhost:12321',
+      mockWhitelist: ['nottheuser@firecloud.org', 'alsonottheuser@firecloud.org'],
+    };
+
+    const authMiddleware = configuredAuth(appConfig);
+
+    expect(next.called).to.be.false;
+    // Express calls "next" as a side effect, so we have to chain our test expectations
+    // after the middleware call.
+    authMiddleware(req, res, next).then(
+        (result) => {
+          expect(next.calledOnce).to.be.true;
+          const actual = next.getCall(0).args[0];
+          expect(actual).to.be.an('Error');
+          expect(actual).to.have.property('message',
+              'Access to this service is restricted. Contact [XXX] for more information.');
+          expect(actual).to.have.property('statusCode', 403);
+          done();
+        },
+        (err) => {
+          done(err);
+        }
+    ).catch((err) => {
+      done(err);
+    });
+  });
+
+  it('should call the next Express handler when user is valid and whitelisted', (done) => {
+    const req = mockRequest({Authorization: 'valid'});
+    const res = mockResponse();
+    const next = spy();
+
+    const appConfig = {
+      samUrl: 'http://localhost:12321',
+      mockWhitelist: ['validuser@firecloud.org'],
     };
 
     const authMiddleware = configuredAuth(appConfig);
