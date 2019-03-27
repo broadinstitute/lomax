@@ -32,7 +32,7 @@ describe('rawls data access', () => {
     const unresponsiverawls = {
       rawlsUrl: 'http://localhost:65432',
     };
-    return expect(rawls.getWorkspace(unresponsiverawls, 'namespace', 'name', 'valid'))
+    return expect(rawls.getWorkspace(unresponsiverawls, 'namespace', 'name', {token: 'valid'}))
         .to.be.rejectedWith(HttpError)
         .and.eventually.have.property('statusCode', 500);
   });
@@ -43,19 +43,19 @@ describe('rawls data access', () => {
     const timeoutrawls = _.merge({}, appConfig, {
       timeout: 1000,
     });
-    return expect(rawls.getWorkspace(timeoutrawls, 'namespace', 'name', 'slow'))
+    return expect(rawls.getWorkspace(timeoutrawls, 'namespace', 'name', {token: 'slow'}))
         .to.be.rejectedWith(HttpError, 'Connection to http://localhost:12321/api/workspaces/namespace/name timed out.')
         .and.eventually.have.property('statusCode', 500);
   }).timeout(5000);
 
   it('should throw for an invalid token', () => {
-    return expect(rawls.getWorkspace(appConfig, 'namespace', 'name', 'invalid'))
+    return expect(rawls.getWorkspace(appConfig, 'namespace', 'name', {token: 'invalid'}))
         .to.be.rejectedWith(HttpError)
         .and.eventually.have.property('statusCode', 401);
   });
 
   it('should throw for a malformed Rawls workspace response', () => {
-    return expect(rawls.getWorkspace(appConfig, 'namespace', 'malformed', 'valid'))
+    return expect(rawls.getWorkspace(appConfig, 'namespace', 'malformed', {token: 'valid'}))
         .to.be.rejectedWith(HttpError, 'Workspace namespace/malformed could not be parsed.')
         .and.eventually.have.property('statusCode', 500);
   });
@@ -74,12 +74,12 @@ describe('rawls data access', () => {
       'workflowCollectionName': 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
       'workspaceId': '11111111-2222-3333-4444-555555555555',
     };
-    const actual = (await rawls.getWorkspace(appConfig, 'namespace', 'name', 'valid'));
+    const actual = (await rawls.getWorkspace(appConfig, 'namespace', 'name', {token: 'valid'}));
     expect(actual).to.deep.equal(expected);
   });
 
   it('should throw if user is not owner', () => {
-    return expect(rawls.getWorkspace(appConfig, 'reader', 'name', 'valid'))
+    return expect(rawls.getWorkspace(appConfig, 'reader', 'name', {token: 'valid'}))
         .to.be.rejectedWith(HttpError, 'You must be an owner of workspace reader/name.')
         .and.eventually.have.property('statusCode', 403);
   });

@@ -17,9 +17,6 @@ const mockRequest = (headers = {}, body = {}, method = 'GET') => {
     return req.headers[header];
   };
   req.is = (mimetype) => {
-    console.log(`running stub for [is] func, against ${JSON.stringify(req.headers)}
-        which resolves to ${req.headers['content-type']}
-        looking for ${mimetype} and returning ${typeis(req, mimetype)}`);
     return typeis(req, mimetype);
   };
   return req;

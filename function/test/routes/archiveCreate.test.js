@@ -162,7 +162,7 @@ describe('validateWorkspaces', () => {
       sourceBucket: 'fc-11111111-2222-3333-4444-555555555555',
       destinationBucket: 'fc-55555555-6666-7777-8888-999999999999',
     };
-    const actual = await validateWorkspaces(appConfig, userArgs, 'valid');
+    const actual = await validateWorkspaces(appConfig, userArgs, {token: 'valid'});
     expect(actual).to.deep.equal(expected);
   });
 
@@ -177,7 +177,7 @@ describe('validateWorkspaces', () => {
         name: 'name2',
       },
     };
-    return expect(validateWorkspaces(appConfig, userArgs, 'valid'))
+    return expect(validateWorkspaces(appConfig, userArgs, {token: 'valid'}))
         .to.be.rejectedWith(HttpError, 'You must be an owner of workspace reader/name.')
         .and.eventually.have.property('statusCode', 403);
   });
@@ -193,7 +193,7 @@ describe('validateWorkspaces', () => {
         name: 'workspace-does-not-exist',
       },
     };
-    return expect(validateWorkspaces(appConfig, userArgs, 'valid'))
+    return expect(validateWorkspaces(appConfig, userArgs, {token: 'valid'}))
         .to.be.rejectedWith(HttpError, 'namespace/workspace-does-not-exist does not exist')
         .and.eventually.have.property('statusCode', 404);
   });

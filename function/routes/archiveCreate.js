@@ -7,7 +7,6 @@ const express = require('express');
 const router = new express.Router();
 const appConfig = require('../config.js').config;
 const rawls = require('../dataaccess/rawls');
-const auth = require('../auth');
 
 const argNamespace = 'namespace';
 const argName = 'name';
@@ -47,13 +46,13 @@ const validateInputs = (req) => {
   return userArgs;
 };
 
-const validateWorkspaces = (appConfig, userArgs, token) => {
+const validateWorkspaces = (appConfig, userArgs, req) => {
   // check source and destination buckets
   return Promise.all([
     rawls.getBucket(
-        appConfig, userArgs.source.namespace, userArgs.source.name, token),
+        appConfig, userArgs.source.namespace, userArgs.source.name, req),
     rawls.getBucket(
-        appConfig, userArgs.destination.namespace, userArgs.destination.name, token),
+        appConfig, userArgs.destination.namespace, userArgs.destination.name, req),
   ]).then((buckets) => {
     const sourceBucket = buckets[0];
     const destinationBucket = buckets[1];
@@ -70,10 +69,7 @@ router.all('/', allowedMethods(['POST']), (req, res, next) => {
     // validate body payload and Content-Type: application/json
     const userArgs = validateInputs(req);
 
-    // get the auth token out of the request
-    const token = auth.requireAuthorizationHeader(req);
-
-    return validateWorkspaces(appConfig, userArgs, token)
+    return validateWorkspaces(appConfig, userArgs, req)
         .then((bucketInfo) => {
         // TODO: once functionality exists to perform the archiving, return something better
           res.send(`archiving ${bucketInfo.sourceBucket} --> ${bucketInfo.destinationBucket}`);

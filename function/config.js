@@ -1,6 +1,7 @@
 'use strict';
 
 const _ = require('lodash');
+const logger = require('./logging');
 
 // idea: switch this whole thing to use nconf, or other turnkey config library
 
@@ -11,9 +12,7 @@ const loadConfigFiles = (...configFiles) => {
     try {
       conf = require(fileRef);
     } catch (err) {
-      if (process.env.NODE_ENV !== 'test') {
-        console.warn(`could not load config from ${fileRef}`, err);
-      }
+      logger.error(`could not load config from ${fileRef}`, err);
     }
     return conf;
   });

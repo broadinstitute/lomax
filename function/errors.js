@@ -1,5 +1,7 @@
 'use strict';
 
+const logger = require('./logging');
+
 // idea: use https://www.npmjs.com/package/boom instead of our own HttpError
 
 /**
@@ -53,8 +55,8 @@ const errorHandler = (err, req, res, next) => {
   //   * not log any http 4xx errors (bad user input);
   //   * log any errors that have no status code
   const code = (err.statusCode || -1);
-  if ( process.env.NODE_ENV !== 'test' && code >= 500 || code < 100 ) {
-    console.error(err);
+  if ( code >= 500 || code < 100 ) {
+    logger.error(err);
   }
   if (res.headersSent) {
     return next(err);

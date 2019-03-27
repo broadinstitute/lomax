@@ -3,17 +3,18 @@
 const _ = require('lodash');
 const {throwHttpError} = require('../errors');
 const restclient = require('./restclient');
+const logger = require('../logging');
 
 const bucketFromWorkspace = (ws) => {
   return ws.bucketName;
 };
 
-const getBucket = async (appConfig, namespace, name, authToken) => {
-  const ws = await getWorkspace(appConfig, namespace, name, authToken);
+const getBucket = async (appConfig, namespace, name, req) => {
+  const ws = await getWorkspace(appConfig, namespace, name, req);
   return bucketFromWorkspace(ws);
 };
 
-const getWorkspace = async (appConfig, namespace, name, authToken) => {
+const getWorkspace = async (appConfig, namespace, name, req) => {
   const opts = appConfig || {};
 
   if (!opts.rawlsUrl) {
@@ -28,7 +29,7 @@ const getWorkspace = async (appConfig, namespace, name, authToken) => {
     throwHttpError(400, 'Workspace name is required.');
   }
 
-  if (!authToken) {
+  if (!req.token) {
     throwHttpError(400, 'Authorization token is required.');
   }
 
@@ -39,7 +40,7 @@ const getWorkspace = async (appConfig, namespace, name, authToken) => {
     timeout: opts.timeout,
   };
 
-  return await restclient.safeRequest(reqOptions, authToken)
+  return await restclient.safeRequest(reqOptions, req.token)
       .then((response) => {
         // do we need "or PROJECT_OWNER" here?
         if (response.body.accessLevel === 'OWNER' ||
@@ -50,6 +51,9 @@ const getWorkspace = async (appConfig, namespace, name, authToken) => {
             throwHttpError(500, `Workspace ${namespace}/${name} could not be parsed.`);
           }
         } else {
+          const userEmail = req.email || 'unknown/anonymous user';
+          logger.error(`${userEmail} requested workspace ${namespace}/${name} but ` +
+              `only has ${response.body.accessLevel} access.`);
           throwHttpError(403, `You must be an owner of workspace ${namespace}/${name}.`);
         }
       });
